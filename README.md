@@ -1,8 +1,15 @@
 # slog-gorm
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/orandin/slog-gorm.svg)](https://pkg.go.dev/github.com/orandin/slog-gorm)
+![Go Version](https://img.shields.io/badge/Go-%3E%3D%201.21-%23007d9c)
+[![CI](https://github.com/orandin/slog-gorm/actions/workflows/ci.yaml/badge.svg)](https://github.com/orandin/slog-gorm/actions/workflows/ci.yaml)
+[![Go report](https://goreportcard.com/badge/github.com/orandin/slog-gorm)](https://goreportcard.com/report/github.com/orandin/slog-gorm)
+[![Coverage](https://img.shields.io/codecov/c/github/orandin/slog-gorm)](https://codecov.io/gh/orandin/slog-gorm)
+[![Renovate](https://img.shields.io/badge/dependabot-enabled-brightgreen.svg)](https://docs.github.com/en/code-security/dependabot/working-with-dependabot)
+[![License](https://img.shields.io/github/license/orandin/slog-gorm)](./LICENSE)
+
 `slog-gorm` provides a slog adapter, highly configurable, for [gorm logger](https://gorm.io/docs/logger.html)
 to have homogeneous logs between your application / script and gorm.
-
 
 ## Key features
 
