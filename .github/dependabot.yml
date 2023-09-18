@@ -1,0 +1,21 @@
+# Please see the documentation for all configuration options:
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - dependencies
+      - actions
+    commit-message:
+      prefix: "ci(deps)"
+  - package-ecosystem: "gomod"
+    directory: "/"
+    labels:
+      - dependencies
+      - go
+    schedule:
+      interval: "daily"
