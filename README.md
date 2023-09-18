@@ -1,6 +1,6 @@
 # slog-gorm
 
-`slog-gorm` provides a slog adapter, highly configurable, for [gorm logger](https://gorm.io/docs/logger.html) 
+`slog-gorm` provides a slog adapter, highly configurable, for [gorm logger](https://gorm.io/docs/logger.html)
 to have homogeneous logs between your application / script and gorm.
 
 
@@ -26,7 +26,7 @@ import (
 
     "gorm.io/driver/sqlite"
     "gorm.io/gorm"
-	
+
     slogGorm "github.com/orandin/slog-gorm"
 )
 
@@ -93,10 +93,10 @@ logger := slog.New(syslogHandler)
 gormLogger := slogGorm.New(
     slogGorm.WithLogger(logger),
 
-    // Set logging level for SQL errors	
+    // Set logging level for SQL errors
     slogGorm.SetLogLevel(slogGorm.ErrorLogType, LOG_ERR)
-	
-    // Set logging level for slow queries	
+
+    // Set logging level for slow queries
     slogGorm.SetLogLevel(slogGorm.SlowQueryLogType, LOG_NOTICE)
 
     // Set logging level for other messages (default level)
@@ -108,11 +108,12 @@ gormLogger := slogGorm.New(
 
 ```golang
 customLogger := sloggorm.New(
-	sloggorm.WithSlowThreshold(500 * time.Millisecond), // to identify slow queries
-	
-	sloggorm.WithRecordNotFoundError(), // don't ignore not found errors
-	
-	sloggorm.WithSourceField("origin"), // instead of "file" (by default)
+	slogGorm.WithSlowThreshold(500 * time.Millisecond), // to identify slow queries
+
+	slogGorm.WithRecordNotFoundError(), // don't ignore not found errors
+
+	slogGorm.WithSourceField("origin"), // instead of "file" (by default)
+
 	slogGorm.WithErrorField("err"),     // instead of "error" (by default)
 )
 ```
@@ -121,6 +122,6 @@ By default, the slow queries and SQL errors are logged, but you can ignore all S
 
 ```
 customLogger := sloggorm.New(
-    sloggorm.WithIgnoreTrace(), // disable the tracing of SQL queries by the logger.
+    slogGorm.WithIgnoreTrace(), // disable the tracing of SQL queries by the logger.
 )
 ```
