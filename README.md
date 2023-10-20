@@ -65,7 +65,8 @@ logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 gormLogger := slogGorm.New(
     slogGorm.WithLogger(logger), // Optional, use slog.Default() by default
-    slogGorm.WithTraceAll(slog.Info), // trace all messages and define the default logging level
+    slogGorm.WithTraceAll(), // trace all messages 
+    slogGorm.SetLogLevel(DefaultLogType, slog.Level(32)), // Define the default logging level
 )
 ```
 
