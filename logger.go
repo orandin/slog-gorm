@@ -69,7 +69,14 @@ type logger struct {
 }
 
 // LogMode log mode
-func (l logger) LogMode(_ gormlogger.LogLevel) gormlogger.Interface {
+func (l logger) LogMode(level gormlogger.LogLevel) gormlogger.Interface {
+	// The Debug() function of gorm sets the log level to info for subsequent
+	// queries to trace them. As this is commonly used to debug specific
+	// queries / areas in the code, this behavior is retained by setting the
+	// traceAll flag.
+	if level == gormlogger.Info {
+		l.traceAll = true
+	}
 	// log level is set by slog
 	return l
 }
