@@ -64,11 +64,11 @@ func WithIgnoreTrace() Option {
 }
 
 // WithContextValue adds a context value to the log
-func WithContextValue(contextKey string) Option {
+func WithContextValue(slogAttrName, contextKey string) Option {
 	return func(l *logger) {
 		if l.contextKeys == nil {
-			l.contextKeys = make([]string, 0)
+			l.contextKeys = make(map[string]string, 0)
 		}
-		l.contextKeys = append(l.contextKeys, contextKey)
+		l.contextKeys[slogAttrName] = contextKey
 	}
 }

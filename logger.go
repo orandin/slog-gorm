@@ -62,7 +62,7 @@ type logger struct {
 	traceAll                  bool
 	slowThreshold             time.Duration
 	logLevel                  map[LogType]slog.Level
-	contextKeys               []string
+	contextKeys               map[string]string
 
 	sourceField string
 	errorField  string
@@ -153,9 +153,9 @@ func (l logger) appendContextAttributes(ctx context.Context, args []any) []any {
 	if args == nil {
 		args = []any{}
 	}
-	for _, key := range l.contextKeys {
-		if value := ctx.Value(key); value != nil {
-			args = append(args, slog.Any(key, value))
+	for k, v := range l.contextKeys {
+		if value := ctx.Value(v); value != nil {
+			args = append(args, slog.Any(k, value))
 		}
 	}
 	return args
