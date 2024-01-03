@@ -39,7 +39,7 @@ func Test_logger_LogMode(t *testing.T) {
 }
 
 func Test_logger(t *testing.T) {
-	receiver, gormLogger := getReceiverAndLogger([]Option{WithContextValue("test")})
+	receiver, gormLogger := getReceiverAndLogger([]Option{WithContextValue("attrKey", "ctxKey")})
 	expectedMsg := "awesome message"
 
 	tests := []struct {
@@ -47,7 +47,7 @@ func Test_logger(t *testing.T) {
 		ctx            context.Context
 		function       func(context.Context, string, ...any)
 		wantMsg        string
-		wantAttributes []slog.Attr
+		wantAttributes map[string]slog.Attr
 		wantLevel      slog.Level
 	}{
 		{
@@ -73,10 +73,10 @@ func Test_logger(t *testing.T) {
 		},
 		{
 			name:           "Error",
-			ctx:            context.WithValue(context.Background(), "test", "test"),
+			ctx:            context.WithValue(context.Background(), "ctxKey", "ctxVal"),
 			function:       gormLogger.Error,
 			wantMsg:        expectedMsg,
-			wantAttributes: []slog.Attr{slog.Any("test", "test")},
+			wantAttributes: map[string]slog.Attr{"attrKey": slog.Any("attrKey", "ctxVal")},
 			wantLevel:      slog.LevelError,
 		},
 	}
@@ -151,7 +151,7 @@ func Test_logger_Trace(t *testing.T) {
 
 		wantNoRecord       bool
 		wantContainMessage string
-		wantAttributes     []slog.Attr
+		wantAttributes     map[string]slog.Attr
 		wantLevel          slog.Level
 	}{
 		{
@@ -277,23 +277,23 @@ func Test_logger_Trace(t *testing.T) {
 			name: "With context value",
 			options: []Option{
 				WithTraceAll(),
-				WithContextValue("test"),
+				WithContextValue("attrKey", "ctxKey"),
 			},
 			args:               selectQueryArgs,
-			ctx:                context.WithValue(context.Background(), "test", "test"),
+			ctx:                context.WithValue(context.Background(), "ctxKey", "ctxVal"),
 			wantContainMessage: "SQL query executed",
-			wantAttributes:     []slog.Attr{slog.Any("test", "test")},
+			wantAttributes:     map[string]slog.Attr{"attrKey": slog.Any("attrKey", "ctxVal")},
 			wantLevel:          slog.LevelInfo,
 		},
 		{
 			name: "With error and context value",
 			options: []Option{
-				WithContextValue("test"),
+				WithContextValue("attrKey", "ctxKey"),
 			},
 			args:               errorQueryArgs,
-			ctx:                context.WithValue(context.Background(), "test", "test"),
+			ctx:                context.WithValue(context.Background(), "ctxKey", "ctxVal"),
 			wantContainMessage: errorQueryArgs.err.Error(),
-			wantAttributes:     []slog.Attr{slog.Any("test", "test")},
+			wantAttributes:     map[string]slog.Attr{"attrKey": slog.Any("attrKey", "ctxVal")},
 			wantLevel:          slog.LevelError,
 		},
 	}
@@ -312,10 +312,10 @@ func Test_logger_Trace(t *testing.T) {
 				assert.Equal(t, tt.wantLevel, receiver.Record.Level)
 				assert.Contains(t, receiver.Record.Message, tt.wantContainMessage)
 				if tt.wantAttributes != nil {
-					for _, v := range tt.wantAttributes {
+					for k, v := range tt.wantAttributes {
 						found := false
 						receiver.Record.Attrs(func(attr slog.Attr) bool {
-							if attr.Equal(v) {
+							if attr.Key == k && attr.Equal(v) {
 								found = true
 								return false
 							}

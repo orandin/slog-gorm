@@ -124,7 +124,7 @@ customLogger := sloggorm.New(
 
 	slogGorm.WithErrorField("err"),     // instead of "error" (by default)
 
-	slogGorm.WithContextValue("key"),   // adds an slog.Attr if a value if found for this key in the Gorm's query context
+	slogGorm.WithContextValue("slogAttrName", "ctxKey"), // adds an slog.Attr if a value if found for this key in the Gorm's query context
 )
 ```
 
