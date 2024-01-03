@@ -123,6 +123,8 @@ customLogger := sloggorm.New(
 	slogGorm.WithSourceField("origin"), // instead of "file" (by default)
 
 	slogGorm.WithErrorField("err"),     // instead of "error" (by default)
+
+	slogGorm.WithContextValue("key"),   // adds an slog.Attr if a value if found for this key in the Gorm's query context
 )
 ```
 

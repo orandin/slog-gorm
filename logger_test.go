@@ -39,32 +39,45 @@ func Test_logger_LogMode(t *testing.T) {
 }
 
 func Test_logger(t *testing.T) {
-	receiver, gormLogger := getReceiverAndLogger(nil)
+	receiver, gormLogger := getReceiverAndLogger([]Option{WithContextValue("test")})
 	expectedMsg := "awesome message"
 
 	tests := []struct {
-		name      string
-		function  func(context.Context, string, ...any)
-		wantMsg   string
-		wantLevel slog.Level
+		name           string
+		ctx            context.Context
+		function       func(context.Context, string, ...any)
+		wantMsg        string
+		wantAttributes []slog.Attr
+		wantLevel      slog.Level
 	}{
 		{
 			name:      "Info",
+			ctx:       context.Background(),
 			function:  gormLogger.Info,
 			wantMsg:   expectedMsg,
 			wantLevel: slog.LevelInfo,
 		},
 		{
 			name:      "Warn",
+			ctx:       context.Background(),
 			function:  gormLogger.Warn,
 			wantMsg:   expectedMsg,
 			wantLevel: slog.LevelWarn,
 		},
 		{
 			name:      "Error",
+			ctx:       context.Background(),
 			function:  gormLogger.Error,
 			wantMsg:   expectedMsg,
 			wantLevel: slog.LevelError,
+		},
+		{
+			name:           "Error",
+			ctx:            context.WithValue(context.Background(), "test", "test"),
+			function:       gormLogger.Error,
+			wantMsg:        expectedMsg,
+			wantAttributes: []slog.Attr{slog.Any("test", "test")},
+			wantLevel:      slog.LevelError,
 		},
 	}
 
@@ -73,12 +86,26 @@ func Test_logger(t *testing.T) {
 			receiver.Reset()
 
 			// Act
-			tt.function(context.Background(), tt.wantMsg)
+			tt.function(tt.ctx, tt.wantMsg)
 
 			// Assert
 			require.NotNil(t, receiver.Record)
 			assert.Equal(t, tt.wantMsg, receiver.Record.Message)
 			assert.Equal(t, tt.wantLevel, receiver.Record.Level)
+
+			if tt.wantAttributes != nil {
+				for _, v := range tt.wantAttributes {
+					found := false
+					receiver.Record.Attrs(func(attr slog.Attr) bool {
+						if attr.Equal(v) {
+							found = true
+							return false
+						}
+						return true
+					})
+					assert.True(t, found, "expected attribute %v not found", v.Key)
+				}
+			}
 		})
 	}
 }
@@ -120,9 +147,11 @@ func Test_logger_Trace(t *testing.T) {
 		name    string
 		args    args
 		options []Option
+		ctx     context.Context
 
 		wantNoRecord       bool
 		wantContainMessage string
+		wantAttributes     []slog.Attr
 		wantLevel          slog.Level
 	}{
 		{
@@ -131,6 +160,7 @@ func Test_logger_Trace(t *testing.T) {
 				WithTraceAll(),
 			},
 			args:               selectQueryArgs,
+			ctx:                context.Background(),
 			wantContainMessage: "SQL query executed",
 			wantLevel:          slog.LevelInfo,
 		},
@@ -140,6 +170,7 @@ func Test_logger_Trace(t *testing.T) {
 				WithTraceAll(),
 				SetLogLevel(DefaultLogType, customLogLevel),
 			},
+			ctx:                context.Background(),
 			args:               selectQueryArgs,
 			wantContainMessage: "SQL query executed",
 			wantLevel:          customLogLevel,
@@ -147,6 +178,7 @@ func Test_logger_Trace(t *testing.T) {
 		{
 			name:         "Without trace all mode",
 			args:         selectQueryArgs,
+			ctx:          context.Background(),
 			wantNoRecord: true,
 		},
 		{
@@ -156,6 +188,7 @@ func Test_logger_Trace(t *testing.T) {
 				WithIgnoreTrace(),
 			},
 			args:         selectQueryArgs,
+			ctx:          context.Background(),
 			wantNoRecord: true,
 		},
 		{
@@ -164,6 +197,7 @@ func Test_logger_Trace(t *testing.T) {
 				WithSlowThreshold(1 * time.Second),
 			},
 			args:               selectQueryArgs,
+			ctx:                context.Background(),
 			wantContainMessage: "slow sql query",
 			wantLevel:          slog.LevelWarn,
 		},
@@ -174,6 +208,7 @@ func Test_logger_Trace(t *testing.T) {
 				SetLogLevel(SlowQueryLogType, customLogLevel),
 			},
 			args:               selectQueryArgs,
+			ctx:                context.Background(),
 			wantContainMessage: "slow sql query",
 			wantLevel:          customLogLevel,
 		},
@@ -184,6 +219,7 @@ func Test_logger_Trace(t *testing.T) {
 				WithIgnoreTrace(),
 			},
 			args:         selectQueryArgs,
+			ctx:          context.Background(),
 			wantNoRecord: true,
 		},
 		{
@@ -198,6 +234,7 @@ func Test_logger_Trace(t *testing.T) {
 				SetLogLevel(ErrorLogType, customLogLevel),
 			},
 			args:               errorQueryArgs,
+			ctx:                context.Background(),
 			wantContainMessage: errorQueryArgs.err.Error(),
 			wantLevel:          customLogLevel,
 		},
@@ -207,6 +244,7 @@ func Test_logger_Trace(t *testing.T) {
 				WithIgnoreTrace(),
 			},
 			args:         errorQueryArgs,
+			ctx:          context.Background(),
 			wantNoRecord: true,
 		},
 		{
@@ -215,6 +253,7 @@ func Test_logger_Trace(t *testing.T) {
 				WithRecordNotFoundError(),
 			},
 			args:               notFoundErrorQueryArgs,
+			ctx:                context.Background(),
 			wantContainMessage: notFoundErrorQueryArgs.err.Error(),
 			wantLevel:          slog.LevelError,
 		},
@@ -225,12 +264,37 @@ func Test_logger_Trace(t *testing.T) {
 				WithIgnoreTrace(),
 			},
 			args:         notFoundErrorQueryArgs,
+			ctx:          context.Background(),
 			wantNoRecord: true,
 		},
 		{
 			name:         "Not found error is ignored",
 			args:         notFoundErrorQueryArgs,
+			ctx:          context.Background(),
 			wantNoRecord: true,
+		},
+		{
+			name: "With context value",
+			options: []Option{
+				WithTraceAll(),
+				WithContextValue("test"),
+			},
+			args:               selectQueryArgs,
+			ctx:                context.WithValue(context.Background(), "test", "test"),
+			wantContainMessage: "SQL query executed",
+			wantAttributes:     []slog.Attr{slog.Any("test", "test")},
+			wantLevel:          slog.LevelInfo,
+		},
+		{
+			name: "With error and context value",
+			options: []Option{
+				WithContextValue("test"),
+			},
+			args:               errorQueryArgs,
+			ctx:                context.WithValue(context.Background(), "test", "test"),
+			wantContainMessage: errorQueryArgs.err.Error(),
+			wantAttributes:     []slog.Attr{slog.Any("test", "test")},
+			wantLevel:          slog.LevelError,
 		},
 	}
 	for _, tt := range tests {
@@ -238,7 +302,7 @@ func Test_logger_Trace(t *testing.T) {
 			receiver, gormLogger := getReceiverAndLogger(tt.options)
 
 			// Act
-			gormLogger.Trace(context.Background(), tt.args.begin, tt.args.fc, tt.args.err)
+			gormLogger.Trace(tt.ctx, tt.args.begin, tt.args.fc, tt.args.err)
 
 			// Assert
 			if tt.wantNoRecord {
@@ -247,6 +311,20 @@ func Test_logger_Trace(t *testing.T) {
 				require.NotNil(t, receiver.Record)
 				assert.Equal(t, tt.wantLevel, receiver.Record.Level)
 				assert.Contains(t, receiver.Record.Message, tt.wantContainMessage)
+				if tt.wantAttributes != nil {
+					for _, v := range tt.wantAttributes {
+						found := false
+						receiver.Record.Attrs(func(attr slog.Attr) bool {
+							if attr.Equal(v) {
+								found = true
+								return false
+							}
+							return true
+						})
+						assert.True(t, found, "expected attribute %v not found", v.Key)
+					}
+
+				}
 			}
 		})
 	}
