@@ -18,7 +18,7 @@ to have homogeneous logs between your application / script and gorm.
 - can define a threshold to identify and log the slow queries.
 - can log all SQL messages or just the errors if you prefer.
 - can define a custom `slog.Level` for errors, slow queries or the other logs.
-
+- can log context values with each Gorm log.
 
 ## Requirement
 
