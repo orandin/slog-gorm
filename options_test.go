@@ -94,3 +94,13 @@ func TestWithSourceField(t *testing.T) {
 
 	assert.Equal(t, expected, actual.sourceField)
 }
+
+func TestWithContextValue(t *testing.T) {
+	actual := &logger{}
+	attrName := "attrName"
+	expected := "contextKey"
+
+	WithContextValue(attrName, expected)(actual)
+
+	assert.Equal(t, map[string]string{attrName: expected}, actual.contextKeys)
+}
