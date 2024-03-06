@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"runtime"
 	"testing"
 	"time"
 
@@ -17,8 +18,8 @@ func TestNew(t *testing.T) {
 	t.Run("Without options", func(t *testing.T) {
 		l := New()
 
-		require.NotNil(t, l.slogger)
-		assert.Equal(t, slog.Default(), l.slogger)
+		require.NotNil(t, l.sloggerHandler)
+		assert.Equal(t, slog.Default().Handler(), l.sloggerHandler)
 	})
 
 	t.Run("WithLogger(nil)", func(t *testing.T) {
@@ -26,8 +27,17 @@ func TestNew(t *testing.T) {
 			WithLogger(nil),
 		)
 
-		require.NotNil(t, l.slogger)
-		assert.Equal(t, slog.Default(), l.slogger)
+		require.NotNil(t, l.sloggerHandler)
+		assert.Equal(t, slog.Default().Handler(), l.sloggerHandler)
+	})
+
+	t.Run("WithHandler(nil)", func(t *testing.T) {
+		l := New(
+			WithHandler(nil),
+		)
+
+		require.NotNil(t, l.sloggerHandler)
+		assert.Equal(t, slog.Default().Handler(), l.sloggerHandler)
 	})
 }
 
@@ -49,6 +59,7 @@ func Test_logger(t *testing.T) {
 		wantMsg        string
 		wantAttributes map[string]slog.Attr
 		wantLevel      slog.Level
+		wantSource     string
 	}{
 		{
 			name:      "Info",
@@ -92,6 +103,11 @@ func Test_logger(t *testing.T) {
 			require.NotNil(t, receiver.Record)
 			assert.Equal(t, tt.wantMsg, receiver.Record.Message)
 			assert.Equal(t, tt.wantLevel, receiver.Record.Level)
+			pc, _, _, ok := runtime.Caller(0)
+			assert.True(t, ok)
+			actualFrame, _ := runtime.CallersFrames([]uintptr{pc}).Next()
+			frame, _ := runtime.CallersFrames([]uintptr{receiver.Record.PC}).Next()
+			assert.Equal(t, actualFrame.Function, frame.Function)
 
 			if tt.wantAttributes != nil {
 				for _, v := range tt.wantAttributes {

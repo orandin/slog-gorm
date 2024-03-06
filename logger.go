@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"runtime"
 	"time"
 
 	"gorm.io/gorm"
@@ -47,16 +48,16 @@ func New(options ...Option) *logger {
 		option(&l)
 	}
 
-	if l.slogger == nil {
-		// If no slogger is defined, use the default Logger
-		l.slogger = slog.Default()
+	if l.sloggerHandler == nil {
+		// If no sloggerHandler is defined, use the default Handler
+		l.sloggerHandler = slog.Default().Handler()
 	}
 
 	return &l
 }
 
 type logger struct {
-	slogger                   *slog.Logger
+	sloggerHandler            slog.Handler
 	ignoreTrace               bool
 	ignoreRecordNotFoundError bool
 	traceAll                  bool
@@ -75,28 +76,39 @@ func (l logger) LogMode(_ gormlogger.LogLevel) gormlogger.Interface {
 }
 
 // Info logs info
-func (l logger) Info(ctx context.Context, msg string, args ...any) {
-	l.log(l.slogger.InfoContext, ctx, msg, args...)
+func (l logger) Info(ctx context.Context, format string, args ...any) {
+	l.log(ctx, slog.LevelInfo, format, args...)
 }
 
 // Warn logs warn messages
-func (l logger) Warn(ctx context.Context, msg string, args ...any) {
-	l.log(l.slogger.WarnContext, ctx, msg, args...)
+func (l logger) Warn(ctx context.Context, format string, args ...any) {
+	l.log(ctx, slog.LevelWarn, format, args...)
 }
 
 // Error logs error messages
-func (l logger) Error(ctx context.Context, msg string, args ...any) {
-	l.log(l.slogger.ErrorContext, ctx, msg, args...)
+func (l logger) Error(ctx context.Context, format string, args ...any) {
+	l.log(ctx, slog.LevelError, format, args...)
 }
 
-// log adds context attributes and logs a message with the given slog function
-func (l logger) log(f func(ctx context.Context, msg string, args ...any), ctx context.Context, msg string, args ...any) {
+// log adds context attributes and logs a message with the given slog level
+func (l logger) log(ctx context.Context, level slog.Level, format string, args ...any) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if !l.sloggerHandler.Enabled(ctx, level) {
+		return
+	}
 
-	// Append context attributes
-	args = l.appendContextAttributes(ctx, args)
+	// Properly handle the PC for the caller
+	var pc uintptr
+	var pcs [1]uintptr
+	// skip [runtime.Callers, this function, this function's caller]
+	runtime.Callers(3, pcs[:])
+	pc = pcs[0]
+	r := slog.NewRecord(time.Now(), level, fmt.Sprintf(format, args...), pc)
+	r.Add(l.appendContextAttributes(ctx, nil)...)
 
-	// Call slog
-	f(ctx, msg, args...)
+	_ = l.sloggerHandler.Handle(ctx, r)
 }
 
 // Trace logs sql message
@@ -119,7 +131,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 			slog.String(l.sourceField, utils.FileWithLineNum()),
 		})
 
-		l.slogger.Log(ctx, l.logLevel[ErrorLogType], err.Error(), attributes...)
+		l.log(ctx, l.logLevel[ErrorLogType], err.Error(), attributes...)
 
 	case l.slowThreshold != 0 && elapsed > l.slowThreshold:
 		sql, rows := fc()
@@ -132,7 +144,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 			slog.Int64(RowsField, rows),
 			slog.String(l.sourceField, utils.FileWithLineNum()),
 		})
-		l.slogger.Log(ctx, l.logLevel[SlowQueryLogType], fmt.Sprintf("slow sql query [%s >= %v]", elapsed, l.slowThreshold), attributes...)
+		l.log(ctx, l.logLevel[SlowQueryLogType], fmt.Sprintf("slow sql query [%s >= %v]", elapsed, l.slowThreshold), attributes...)
 
 	case l.traceAll:
 		sql, rows := fc()
@@ -145,7 +157,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 			slog.String(l.sourceField, utils.FileWithLineNum()),
 		})
 
-		l.slogger.Log(ctx, l.logLevel[DefaultLogType], fmt.Sprintf("SQL query executed [%s]", elapsed), attributes...)
+		l.log(ctx, l.logLevel[DefaultLogType], fmt.Sprintf("SQL query executed [%s]", elapsed), attributes...)
 	}
 }
 
