@@ -32,7 +32,7 @@ func TestNew(t *testing.T) {
 }
 
 func Test_logger_LogMode(t *testing.T) {
-	l := logger{}
+	l := logger{gormLevel: gormlogger.Info}
 	actual := l.LogMode(gormlogger.Info)
 
 	assert.Equal(t, l, actual)

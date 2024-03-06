@@ -40,6 +40,9 @@ func New(options ...Option) *logger {
 			SlowQueryLogType: slog.LevelWarn,
 			DefaultLogType:   slog.LevelInfo,
 		},
+		// The default logger of gorm uses warn as its default level,
+		// see https://github.com/go-gorm/gorm/blob/master/logger/logger.go
+		gormLevel: gormlogger.Warn,
 	}
 
 	// Apply options
@@ -62,6 +65,7 @@ type logger struct {
 	traceAll                  bool
 	slowThreshold             time.Duration
 	logLevel                  map[LogType]slog.Level
+	gormLevel                 gormlogger.LogLevel
 	contextKeys               map[string]string
 
 	sourceField string
@@ -71,12 +75,11 @@ type logger struct {
 // LogMode log mode
 func (l logger) LogMode(level gormlogger.LogLevel) gormlogger.Interface {
 	// The Debug() function of gorm sets the log level to info for subsequent
-	// queries to trace them. As this is commonly used to debug specific
-	// queries / areas in the code, this behavior is retained by setting the
-	// traceAll flag.
-	if level == gormlogger.Info {
-		l.traceAll = true
-	}
+	// queries to trace them, see:
+	//   https://gorm.io/docs/session.html#Debug
+	// The level is only retained to switch to logging all queries, whenever
+	// the level ist set to info.
+	l.gormLevel = level
 	// log level is set by slog
 	return l
 }
@@ -141,7 +144,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 		})
 		l.slogger.Log(ctx, l.logLevel[SlowQueryLogType], fmt.Sprintf("slow sql query [%s >= %v]", elapsed, l.slowThreshold), attributes...)
 
-	case l.traceAll:
+	case l.traceAll || l.gormLevel == gormlogger.Info:
 		sql, rows := fc()
 
 		// Append context attributes
