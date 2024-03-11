@@ -1,6 +1,7 @@
 package slogGorm
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
@@ -39,6 +40,19 @@ func TestNew(t *testing.T) {
 		require.NotNil(t, l.sloggerHandler)
 		assert.Equal(t, slog.Default().Handler(), l.sloggerHandler)
 	})
+}
+
+func Test_logger_Enabled(t *testing.T) {
+	buffer := bytes.NewBuffer(nil)
+	leveler := &slog.LevelVar{}
+	l := New(WithHandler(slog.NewTextHandler(buffer, &slog.HandlerOptions{Level: leveler})))
+	leveler.Set(slog.LevelWarn)
+
+	l.Info(context.Background(), "an info message")
+	assert.Equal(t, 0, buffer.Len())
+
+	l.Warn(context.Background(), "a warn message")
+	assert.Greater(t, buffer.Len(), 0)
 }
 
 func Test_logger_LogMode(t *testing.T) {
