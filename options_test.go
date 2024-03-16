@@ -39,7 +39,16 @@ func TestWithLogger(t *testing.T) {
 
 	WithLogger(log)(actual)
 
-	assert.Equal(t, log, actual.slogger)
+	assert.Equal(t, log.Handler(), actual.sloggerHandler)
+}
+
+func TestWithHandler(t *testing.T) {
+	actual := &logger{}
+	handler := slog.Default().Handler()
+
+	WithHandler(handler)(actual)
+
+	assert.Equal(t, handler, actual.sloggerHandler)
 }
 
 func TestSetLogLevel(t *testing.T) {
