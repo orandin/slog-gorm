@@ -101,7 +101,7 @@ func (l logger) Error(ctx context.Context, format string, args ...any) {
 }
 
 // log adds context attributes and logs a message with the given slog level
-func (l logger) log(ctx context.Context, level slog.Level, format string, args ...any) {
+func (l logger) log(ctx context.Context, level slog.Level, msg string, args ...any) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -115,7 +115,9 @@ func (l logger) log(ctx context.Context, level slog.Level, format string, args .
 	// skip [runtime.Callers, this function, this function's caller]
 	runtime.Callers(3, pcs[:])
 	pc = pcs[0]
-	r := slog.NewRecord(time.Now(), level, fmt.Sprintf(format, args...), pc)
+	// r := slog.NewRecord(time.Now(), level, fmt.Sprintf(format, args...), pc)
+	r := slog.NewRecord(time.Now(), level, msg, pc)
+	r.Add(args...)
 	r.Add(l.appendContextAttributes(ctx, nil)...)
 
 	_ = l.sloggerHandler.Handle(ctx, r)
