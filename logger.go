@@ -121,6 +121,27 @@ func (l logger) log(ctx context.Context, level slog.Level, format string, args .
 	_ = l.sloggerHandler.Handle(ctx, r)
 }
 
+// log adds context attributes and logs a message with the given slog level
+func (l logger) logAttrs(ctx context.Context, level slog.Level, msg string, attrs ...any) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if !l.sloggerHandler.Enabled(ctx, level) {
+		return
+	}
+
+	// Properly handle the PC for the caller
+	var pc uintptr
+	var pcs [1]uintptr
+	// skip [runtime.Callers, this function, this function's caller]
+	runtime.Callers(3, pcs[:])
+	pc = pcs[0]
+	r := slog.NewRecord(time.Now(), level, msg, pc)
+	r.Add(attrs...)
+
+	_ = l.sloggerHandler.Handle(ctx, r)
+}
+
 // Trace logs sql message
 func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	if l.ignoreTrace {
@@ -141,7 +162,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 			slog.String(l.sourceField, utils.FileWithLineNum()),
 		})
 
-		l.log(ctx, l.logLevel[ErrorLogType], err.Error(), attributes...)
+		l.logAttrs(ctx, l.logLevel[ErrorLogType], err.Error(), attributes...)
 
 	case l.slowThreshold != 0 && elapsed > l.slowThreshold:
 		sql, rows := fc()
@@ -154,7 +175,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 			slog.Int64(RowsField, rows),
 			slog.String(l.sourceField, utils.FileWithLineNum()),
 		})
-		l.log(ctx, l.logLevel[SlowQueryLogType], fmt.Sprintf("slow sql query [%s >= %v]", elapsed, l.slowThreshold), attributes...)
+		l.logAttrs(ctx, l.logLevel[SlowQueryLogType], fmt.Sprintf("slow sql query [%s >= %v]", elapsed, l.slowThreshold), attributes...)
 
 	case l.traceAll || l.gormLevel == gormlogger.Info:
 		sql, rows := fc()
@@ -167,7 +188,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 			slog.String(l.sourceField, utils.FileWithLineNum()),
 		})
 
-		l.log(ctx, l.logLevel[DefaultLogType], fmt.Sprintf("SQL query executed [%s]", elapsed), attributes...)
+		l.logAttrs(ctx, l.logLevel[DefaultLogType], fmt.Sprintf("SQL query executed [%s]", elapsed), attributes...)
 	}
 }
 
