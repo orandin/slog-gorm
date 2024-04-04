@@ -48,11 +48,40 @@ func Test_logger_Enabled(t *testing.T) {
 	l := New(WithHandler(slog.NewTextHandler(buffer, &slog.HandlerOptions{Level: leveler})))
 	leveler.Set(slog.LevelWarn)
 
+	l.Info(nil, "an info message")
+	assert.Equal(t, 0, buffer.Len())
+
 	l.Info(context.Background(), "an info message")
 	assert.Equal(t, 0, buffer.Len())
 
 	l.Warn(context.Background(), "a warn message")
 	assert.Greater(t, buffer.Len(), 0)
+}
+
+func Test_logger_Trace_Enabled(t *testing.T) {
+	buffer := bytes.NewBuffer(nil)
+	leveler := &slog.LevelVar{}
+	l := New(
+		WithHandler(slog.NewTextHandler(buffer, &slog.HandlerOptions{Level: leveler})),
+		WithSlowThreshold(10*time.Second),
+		WithTraceAll(),
+	)
+
+	fc := func() (string, int64) {
+		return "SELECT * FROM user", 1
+	}
+
+	leveler.Set(slog.LevelWarn)
+	l.Trace(context.Background(), time.Now().Add(-1*time.Second), fc, nil)
+	assert.Equal(t, 0, buffer.Len())
+
+	leveler.Set(slog.LevelError)
+	l.Trace(context.Background(), time.Now().Add(-1*time.Minute), fc, nil)
+	assert.Equal(t, 0, buffer.Len())
+
+	leveler.Set(slog.Level(42))
+	l.Trace(context.Background(), time.Now().Add(-1*time.Minute), fc, fmt.Errorf("awesome error"))
+	assert.Equal(t, 0, buffer.Len())
 }
 
 func Test_logger_LogMode(t *testing.T) {
