@@ -92,7 +92,23 @@ func Test_logger_LogMode(t *testing.T) {
 }
 
 func Test_logger(t *testing.T) {
-	receiver, gormLogger := getReceiverAndLogger([]Option{WithContextValue("attrKey", "ctxKey")})
+	receiver, gormLogger := getReceiverAndLogger([]Option{
+		WithContextValue("attrKeyViaValue", "ctxKey"),
+		WithContextFunc("attrKeyViaFunc1", func(ctx context.Context) (slog.Value, bool) {
+			v, ok := ctx.Value(ctxKey1).(string)
+			if !ok {
+				return slog.Value{}, false
+			}
+			return slog.StringValue(v), true
+		}),
+		WithContextFunc("attrKeyViaFunc2", func(ctx context.Context) (slog.Value, bool) {
+			v, ok := ctx.Value(ctxKey2).(time.Duration)
+			if !ok {
+				return slog.Value{}, false
+			}
+			return slog.DurationValue(v), true
+		}),
+	})
 	expectedMsg := "awesome message"
 
 	tests := []struct {
@@ -109,6 +125,24 @@ func Test_logger(t *testing.T) {
 			ctx:       context.Background(),
 			function:  gormLogger.Info,
 			wantMsg:   expectedMsg,
+			wantLevel: slog.LevelInfo,
+		},
+		{
+			name: "with context value and func",
+			ctx: context.WithValue(
+				context.WithValue(
+					context.WithValue(context.Background(), "ctxKey", "ctxVal"),
+					ctxKey1, "ctxValFunc1",
+				),
+				ctxKey2, time.Second,
+			),
+			function: gormLogger.Info,
+			wantMsg:  expectedMsg,
+			wantAttributes: map[string]slog.Attr{
+				"attrKeyViaValue": slog.Any("attrKeyViaValue", "ctxVal"),
+				"attrKeyViaFunc1": slog.String("attrKeyViaFunc1", "ctxValFunc1"),
+				"attrKeyViaFunc2": slog.Duration("attrKeyViaFunc2", time.Second),
+			},
 			wantLevel: slog.LevelInfo,
 		},
 		{
@@ -130,7 +164,7 @@ func Test_logger(t *testing.T) {
 			ctx:            context.WithValue(context.Background(), "ctxKey", "ctxVal"),
 			function:       gormLogger.Error,
 			wantMsg:        expectedMsg,
-			wantAttributes: map[string]slog.Attr{"attrKey": slog.Any("attrKey", "ctxVal")},
+			wantAttributes: map[string]slog.Attr{"attrKeyViaValue": slog.Any("attrKeyViaValue", "ctxVal")},
 			wantLevel:      slog.LevelError,
 		},
 	}
@@ -389,7 +423,7 @@ func Test_logger_Trace(t *testing.T) {
 	}
 }
 
-// private functions
+// private helpers
 
 func getReceiverAndLogger(options []Option) (*DummyHandler, *logger) {
 	receiver := NewDummyHandler()
@@ -397,6 +431,13 @@ func getReceiverAndLogger(options []Option) (*DummyHandler, *logger) {
 
 	return receiver, New(options...)
 }
+
+type ctxKey int
+
+const (
+	ctxKey1 ctxKey = iota
+	ctxKey2
+)
 
 // Mock
 
