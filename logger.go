@@ -68,6 +68,7 @@ type logger struct {
 	logLevel                  map[LogType]slog.Level
 	gormLevel                 gormlogger.LogLevel
 	contextKeys               map[string]string
+	contextFuncs              map[string]func(context.Context) (slog.Value, bool)
 
 	sourceField string
 	errorField  string
@@ -198,6 +199,11 @@ func (l logger) appendContextAttributes(ctx context.Context, args []any) []any {
 	}
 	for k, v := range l.contextKeys {
 		if value := ctx.Value(v); value != nil {
+			args = append(args, slog.Any(k, value))
+		}
+	}
+	for k, f := range l.contextFuncs {
+		if value, ok := f(ctx); ok {
 			args = append(args, slog.Any(k, value))
 		}
 	}

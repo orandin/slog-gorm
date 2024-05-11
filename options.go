@@ -1,6 +1,7 @@
 package slogGorm
 
 import (
+	"context"
 	"log/slog"
 	"time"
 )
@@ -81,5 +82,18 @@ func WithContextValue(slogAttrName, contextKey string) Option {
 			l.contextKeys = make(map[string]string, 0)
 		}
 		l.contextKeys[slogAttrName] = contextKey
+	}
+}
+
+// WithContextFunc adds an attribute with the given name and slog.Value returned by the given
+// function if the function returns true. No attribute will be added if the function returns false.
+// Use this over WithContextValue if your context keys are not strings or only accessible via
+// functions.
+func WithContextFunc(slogAttrName string, slogValueFunc func(ctx context.Context) (slog.Value, bool)) Option {
+	return func(l *logger) {
+		if l.contextFuncs == nil {
+			l.contextFuncs = make(map[string]func(context.Context) (slog.Value, bool))
+		}
+		l.contextFuncs[slogAttrName] = slogValueFunc
 	}
 }
