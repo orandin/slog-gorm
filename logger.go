@@ -67,7 +67,7 @@ type logger struct {
 	slowThreshold             time.Duration
 	logLevel                  map[LogType]slog.Level
 	gormLevel                 gormlogger.LogLevel
-	contextKeys               map[string]string
+	contextKeys               map[string]any
 
 	sourceField string
 	errorField  string

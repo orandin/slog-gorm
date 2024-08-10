@@ -111,5 +111,5 @@ func TestWithContextValue(t *testing.T) {
 
 	WithContextValue(attrName, expected)(actual)
 
-	assert.Equal(t, map[string]string{attrName: expected}, actual.contextKeys)
+	assert.Equal(t, map[string]any{attrName: expected}, actual.contextKeys)
 }
