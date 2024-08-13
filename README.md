@@ -128,12 +128,12 @@ customLogger := sloggorm.New(
 	slogGorm.WithContextValue("slogAttrName1", "ctxKey"), // adds an slog.Attr if a value is found for this key in the Gorm's query context
 
 	slogGorm.WithContextFunc("slogAttrName2", func(ctx context.Context) (slog.Value, bool) {
-        v, ok := ctx.Value(ctxKey1).(time.Duration)
-        if !ok {
-            return slog.Value{}, false
-        }
-        return slog.DurationValue(v), true
-    }), // adds an slog.Attr if the given function returns an slog.Value and true
+		v, ok := ctx.Value(ctxKey1).(time.Duration)
+		if !ok {
+			return slog.Value{}, false
+		}
+		return slog.DurationValue(v), true
+	}), // adds an slog.Attr if the given function returns an slog.Value and true
 )
 ```
 
