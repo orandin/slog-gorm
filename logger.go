@@ -154,7 +154,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 	switch {
 	case err != nil && (!errors.Is(err, gorm.ErrRecordNotFound) || !l.ignoreRecordNotFoundError):
 		sql, rows := fc()
-		//sql = l.trimSql(sql)
+		sql = l.trimSql(sql)
 		// Append context attributes
 		attributes := l.appendContextAttributes(ctx, []any{
 			slog.Any(l.errorField, err),
@@ -168,7 +168,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 
 	case l.slowThreshold != 0 && elapsed > l.slowThreshold:
 		sql, rows := fc()
-		//sql = l.trimSql(sql)
+		sql = l.trimSql(sql)
 
 		// Append context attributes
 		attributes := l.appendContextAttributes(ctx, []any{
@@ -182,11 +182,11 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 
 	case l.traceAll || l.gormLevel == gormlogger.Info:
 		sql, rows := fc()
-		//sql = l.trimSql(sql)
+		sql = l.trimSql(sql)
 
 		// Append context attributes
 		attributes := l.appendContextAttributes(ctx, []any{
-			slog.Any(QueryField, sql),
+			slog.String(QueryField, sql),
 			slog.Duration(DurationField, elapsed),
 			slog.Int64(RowsField, rows),
 			slog.String(l.sourceField, utils.FileWithLineNum()),
@@ -197,10 +197,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 }
 
 func (l logger) trimSql(str string) string {
-	str = strings.ReplaceAll(str, "\n", "")
-	str = strings.ReplaceAll(str, "\t", "")
-	str = strings.ReplaceAll(str, "\r", "")
-	str = strings.ReplaceAll(str, "\\", "")
+	str = strings.ReplaceAll(str, "\"", "")
 	return str
 }
 
