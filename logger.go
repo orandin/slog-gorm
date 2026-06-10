@@ -158,7 +158,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 		// Append context attributes
 		attributes := l.appendContextAttributes(ctx, []any{
 			slog.Any(l.errorField, err),
-			slog.String(QueryField, sql),
+			slog.Any(QueryField, sql),
 			slog.Duration(DurationField, elapsed),
 			slog.Int64(RowsField, rows),
 			slog.String(l.sourceField, utils.FileWithLineNum()),
@@ -173,7 +173,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 		// Append context attributes
 		attributes := l.appendContextAttributes(ctx, []any{
 			slog.Bool(SlowQueryField, true),
-			slog.String(QueryField, sql),
+			slog.Any(QueryField, sql),
 			slog.Duration(DurationField, elapsed),
 			slog.Int64(RowsField, rows),
 			slog.String(l.sourceField, utils.FileWithLineNum()),
@@ -186,7 +186,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 
 		// Append context attributes
 		attributes := l.appendContextAttributes(ctx, []any{
-			slog.String(QueryField, sql),
+			slog.Any(QueryField, sql),
 			slog.Duration(DurationField, elapsed),
 			slog.Int64(RowsField, rows),
 			slog.String(l.sourceField, utils.FileWithLineNum()),
