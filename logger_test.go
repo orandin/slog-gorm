@@ -476,3 +476,10 @@ func (h *DummyHandler) Handle(_ context.Context, r slog.Record) error {
 	h.Record = &r
 	return nil
 }
+
+func Test_trimSql(t *testing.T) {
+	query := `{"query": "SELECT * FROM \"merchant\" WHERE \"merchant\".\"id\" = 3 AND \"merchant\".\"deleted_at\" IS NULL", "duration": "133.0827ms", "rows": 1}`
+	var log logger
+	newQuery := log.trimSql(query)
+	t.Log(newQuery)
+}

@@ -197,10 +197,10 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 }
 
 func (l logger) trimSql(str string) string {
-	str = strings.Trim(str, "\n")
-	str = strings.Trim(str, "\t")
-	str = strings.Trim(str, "\r")
-	str = strings.Trim(str, "\\")
+	str = strings.ReplaceAll(str, "\n", "")
+	str = strings.ReplaceAll(str, "\t", "")
+	str = strings.ReplaceAll(str, "\r", "")
+	str = strings.ReplaceAll(str, "\\", "")
 	return str
 }
 
