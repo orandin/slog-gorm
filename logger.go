@@ -154,7 +154,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 	switch {
 	case err != nil && (!errors.Is(err, gorm.ErrRecordNotFound) || !l.ignoreRecordNotFoundError):
 		sql, rows := fc()
-		sql = l.trimSql(sql)
+		//sql = l.trimSql(sql)
 		// Append context attributes
 		attributes := l.appendContextAttributes(ctx, []any{
 			slog.Any(l.errorField, err),
@@ -168,7 +168,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 
 	case l.slowThreshold != 0 && elapsed > l.slowThreshold:
 		sql, rows := fc()
-		sql = l.trimSql(sql)
+		//sql = l.trimSql(sql)
 
 		// Append context attributes
 		attributes := l.appendContextAttributes(ctx, []any{
@@ -182,7 +182,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 
 	case l.traceAll || l.gormLevel == gormlogger.Info:
 		sql, rows := fc()
-		sql = l.trimSql(sql)
+		//sql = l.trimSql(sql)
 
 		// Append context attributes
 		attributes := l.appendContextAttributes(ctx, []any{
