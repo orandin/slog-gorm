@@ -70,9 +70,9 @@ type logger struct {
 	gormLevel                 gormlogger.LogLevel
 	contextKeys               map[string]any
 	contextFuncs              map[string]func(context.Context) (slog.Value, bool)
-
-	sourceField string
-	errorField  string
+	trimQuote                 []string
+	sourceField               string
+	errorField                string
 }
 
 // LogMode log mode
@@ -197,7 +197,9 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 }
 
 func (l logger) trimSql(str string) string {
-	str = strings.ReplaceAll(str, "\"", "")
+	for _, quote := range l.trimQuote {
+		str = strings.ReplaceAll(str, quote, "")
+	}
 	return str
 }
 

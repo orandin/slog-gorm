@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"runtime"
 	"testing"
 	"time"
@@ -478,8 +479,21 @@ func (h *DummyHandler) Handle(_ context.Context, r slog.Record) error {
 }
 
 func Test_trimSql(t *testing.T) {
-	query := `{"query": "SELECT * FROM \"merchant\" WHERE \"merchant\".\"id\" = 3 AND \"merchant\".\"deleted_at\" IS NULL", "duration": "133.0827ms", "rows": 1}`
-	var log logger
-	newQuery := log.trimSql(query)
-	t.Log(newQuery)
+	query := `{"query": "SELECT * FROM "merchant" WHERE "merchant"."id" = 3 AND "merchant"."deleted_at" IS NULL", "duration": "133.0827ms", "rows": 1}`
+	leveler := &slog.LevelVar{}
+	leveler.Set(slog.LevelInfo)
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: leveler}))
+	l := New(
+		WithHandler(logger.Handler()),
+		WithTrimQuoteSql([]string{"\""}),
+		WithSlowThreshold(10*time.Second),
+		SetLogLevel(DefaultLogType, slog.LevelInfo),
+		WithTraceAll(),
+	)
+	fc := func() (string, int64) {
+		return query, 1
+	}
+
+	leveler.Set(slog.LevelInfo)
+	l.Trace(context.Background(), time.Now().Add(-1*time.Second), fc, nil)
 }
