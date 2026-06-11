@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -69,9 +70,9 @@ type logger struct {
 	gormLevel                 gormlogger.LogLevel
 	contextKeys               map[string]any
 	contextFuncs              map[string]func(context.Context) (slog.Value, bool)
-
-	sourceField string
-	errorField  string
+	trimQuote                 []string
+	sourceField               string
+	errorField                string
 }
 
 // LogMode log mode
@@ -153,11 +154,11 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 	switch {
 	case err != nil && (!errors.Is(err, gorm.ErrRecordNotFound) || !l.ignoreRecordNotFoundError):
 		sql, rows := fc()
-
+		sql = l.trimSql(sql)
 		// Append context attributes
 		attributes := l.appendContextAttributes(ctx, []any{
 			slog.Any(l.errorField, err),
-			slog.String(QueryField, sql),
+			slog.Any(QueryField, sql),
 			slog.Duration(DurationField, elapsed),
 			slog.Int64(RowsField, rows),
 			slog.String(l.sourceField, utils.FileWithLineNum()),
@@ -167,11 +168,12 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 
 	case l.slowThreshold != 0 && elapsed > l.slowThreshold:
 		sql, rows := fc()
+		sql = l.trimSql(sql)
 
 		// Append context attributes
 		attributes := l.appendContextAttributes(ctx, []any{
 			slog.Bool(SlowQueryField, true),
-			slog.String(QueryField, sql),
+			slog.Any(QueryField, sql),
 			slog.Duration(DurationField, elapsed),
 			slog.Int64(RowsField, rows),
 			slog.String(l.sourceField, utils.FileWithLineNum()),
@@ -180,6 +182,7 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 
 	case l.traceAll || l.gormLevel == gormlogger.Info:
 		sql, rows := fc()
+		sql = l.trimSql(sql)
 
 		// Append context attributes
 		attributes := l.appendContextAttributes(ctx, []any{
@@ -191,6 +194,13 @@ func (l logger) Trace(ctx context.Context, begin time.Time, fc func() (sql strin
 
 		l.logAttrs(ctx, l.logLevel[DefaultLogType], fmt.Sprintf("SQL query executed [%s]", elapsed), attributes...)
 	}
+}
+
+func (l logger) trimSql(str string) string {
+	for _, quote := range l.trimQuote {
+		str = strings.ReplaceAll(str, quote, "")
+	}
+	return str
 }
 
 func (l logger) appendContextAttributes(ctx context.Context, args []any) []any {

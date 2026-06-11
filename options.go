@@ -19,6 +19,16 @@ func WithLogger(log *slog.Logger) Option {
 	}
 }
 
+// WithTrimQuoteSql
+// like "UPDATE \"test_model\" SET \"name\"='aaa', \"status\"=0 WHERE \"id\"= 1" you can't copy to client for use
+// append(quotes,"\"") to trim " ,then after json marshal like
+// "UPDATE test_model SET name='aaa', status=0 WHERE id= 1" you can use right now
+func WithTrimQuoteSql(quotes []string) Option {
+	return func(l *logger) {
+		l.trimQuote = quotes
+	}
+}
+
 // WithHandler defines a custom logger to use
 func WithHandler(handler slog.Handler) Option {
 	return func(l *logger) {
